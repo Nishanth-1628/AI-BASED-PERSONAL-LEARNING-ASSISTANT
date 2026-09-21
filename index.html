@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>LearnMate — Your Personal AI-Powered Learning Companion</title>
+<link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+<header class="nav"><div class="nav-inner">
+  <a class="logo" href="index.html"><span class="logo-mark">🎓</span> LearnMate</a>
+  <nav class="nav-links"><a href="#features">Features</a><a href="#how">How it works</a><a href="#benefits">Benefits</a><a href="dashboard.html">Dashboard</a></nav>
+  <div class="flex"><button class="btn ghost small" data-theme-toggle>🌙 Dark</button><a class="btn small" href="dashboard.html">Start Learning →</a></div>
+</div></header>
+
+<div class="container">
+  <section class="hero">
+    <div>
+      <span class="badge">✨ AI tutor • Notes • Quizzes • Study plans</span>
+      <h1>Your Personal <span>AI-Powered Learning Companion</span></h1>
+      <p class="lead">Learn any topic, clear doubts, generate notes & quizzes, build study plans and track progress — with a patient AI tutor that explains in English, Tamil or Tanglish.</p>
+      <div class="hero-cta">
+        <a class="btn" href="dashboard.html">Start Learning →</a>
+        <a class="btn outline" href="#features">Explore Features</a>
+      </div>
+      <div class="stats-row">
+        <div class="stat"><b>11</b><span class="muted">AI tools</span></div>
+        <div class="stat"><b>3</b><span class="muted">Languages</span></div>
+        <div class="stat"><b>100%</b><span class="muted">Offline-ready core</span></div>
+      </div>
+    </div>
+    <div class="hero-card">
+      <div class="chat-mock">
+        <div class="hd">🤖 AI Tutor — Java Arrays</div>
+        <div class="bd">
+          <div class="bubble user">What is an array in Java?</div>
+          <div class="bubble ai">An <b>array</b> is a fixed-size box-row holding same-type values. Index starts at <b>0</b>. Example: <code>int[] m = {85,90,78}</code> ✨</div>
+          <div class="bubble user">How do I find the largest element?</div>
+          <div class="bubble ai">Single pass: keep <code>max</code>, update when you see bigger. O(n) time, O(1) space. Try it 👇</div>
+        </div>
+      </div>
+      <div class="flex mt"><a class="btn small" href="tutor.html">Try AI Tutor</a><a class="btn ghost small" href="quiz.html">Take a Quiz</a></div>
+    </div>
+  </section>
+
+  <section class="section" id="features">
+    <h2>Everything you need to learn faster</h2>
+    <p class="sub">Every card below is a real working tool — no dead buttons, no placeholders.</p>
+    <div class="grid3">
+      <a class="card" href="tutor.html"><div class="icon">🤖</div><h3>AI Tutor Chat</h3><p>Patient tutor with voice input, simple-explain mode and follow-up questions.</p></a>
+      <a class="card" href="learn.html"><div class="icon">📚</div><h3>Learn a Topic</h3><p>Structured lessons: overview, examples, mistakes, practice + mini quiz.</p></a>
+      <a class="card" href="notes.html"><div class="icon">📝</div><h3>Notes Generator</h3><p>Short, detailed, exam or revision notes. Copy, download, save.</p></a>
+      <a class="card" href="quiz.html"><div class="icon">🎯</div><h3>Quiz Generator</h3><p>MCQs with answers, explanations, scoring and weak-topic tracking.</p></a>
+      <a class="card" href="study-plan.html"><div class="icon">🗓️</div><h3>Study Planner</h3><p>Daily plan from exam date + hours, with completion tracking.</p></a>
+      <a class="card" href="flashcards.html"><div class="icon">🃏</div><h3>Flashcards</h3><p>Flip cards, mark easy/difficult, revise weak cards.</p></a>
+      <a class="card" href="materials.html"><div class="icon">📂</div><h3>Study Materials</h3><p>Upload TXT/PDF/DOCX, summarize, quiz and ask questions.</p></a>
+      <a class="card" href="progress.html"><div class="icon">📊</div><h3>Progress Dashboard</h3><p>Streaks, scores, weak/strong topics, next-step suggestions.</p></a>
+      <a class="card" href="revision.html"><div class="icon">🔁</div><h3>Revision Mode</h3><p>Quick revision from notes, wrong answers and difficult cards.</p></a>
+    </div>
+  </section>
+
+  <section class="section" id="how">
+    <h2>How it works</h2>
+    <p class="sub">From doubt to mastery in four steps.</p>
+    <div class="steps">
+      <div class="card"><div class="step-num">1</div><h3>Ask or pick a topic</h3><p>Type, speak, upload material or choose a subject.</p></div>
+      <div class="card"><div class="step-num">2</div><h3>Learn with AI</h3><p>Get simple explanations, examples and notes in your language.</p></div>
+      <div class="card"><div class="step-num">3</div><h3>Practice</h3><p>Quizzes, flashcards and study plans lock in memory.</p></div>
+      <div class="card"><div class="step-num">4</div><h3>Track & revise</h3><p>Dashboard finds weak topics and builds revision sessions.</p></div>
+    </div>
+  </section>
+
+  <section class="section" id="benefits">
+    <h2>Why students love LearnMate</h2>
+    <p class="sub">Private by design — your data stays in your browser.</p>
+    <div class="grid4">
+      <div class="card"><h3>🌐 Trilingual</h3><p>English, Tamil and Tanglish explanations.</p></div>
+      <div class="card"><h3>🎙️ Voice-first</h3><p>Speak questions, listen to answers.</p></div>
+      <div class="card"><h3>🔒 Private</h3><p>LocalStorage only. No account, no tracking.</p></div>
+      <div class="card"><h3>📱 Responsive</h3><p>Desktop sidebar, mobile bottom navigation, dark mode.</p></div>
+    </div>
+    <div class="flex" style="justify-content:center;margin-top:24px"><a class="btn" href="dashboard.html">Open Dashboard →</a></div>
+  </section>
+</div>
+
+<footer><div class="container space"><span>© <span id="year"></span> LearnMate — AI-Based Personal Learning Assistant</span><span><a href="settings.html">Settings</a> • <a href="dashboard.html">Dashboard</a></span></div></footer>
+<script src="js/storage.js"></script>
+<script src="js/app.js"></script>
+</body>
+</html>

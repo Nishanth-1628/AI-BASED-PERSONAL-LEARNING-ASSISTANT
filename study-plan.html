@@ -1,0 +1,82 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Study Plan — LearnMate</title>
+<link rel="stylesheet" href="css/style.css">
+</head>
+<body data-page="plan">
+<div class="shell">
+<aside class="sidebar">
+  <div class="side-logo"><span class="logo-mark">🎓</span> LearnMate</div>
+  <a class="side-link" data-nav="dashboard" href="dashboard.html"><span class="e">🏠</span>Dashboard</a>
+  <a class="side-link" data-nav="tutor" href="tutor.html"><span class="e">🤖</span>AI Tutor</a>
+  <a class="side-link" data-nav="learn" href="learn.html"><span class="e">📚</span>Learn</a>
+  <a class="side-link" data-nav="notes" href="notes.html"><span class="e">📝</span>Notes</a>
+  <a class="side-link" data-nav="quiz" href="quiz.html"><span class="e">🎯</span>Quiz</a>
+  <a class="side-link" data-nav="plan" href="study-plan.html"><span class="e">🗓️</span>Study Plan</a>
+  <a class="side-link" data-nav="flash" href="flashcards.html"><span class="e">🃏</span>Flashcards</a>
+  <a class="side-link" data-nav="materials" href="materials.html"><span class="e">📂</span>Materials</a>
+  <a class="side-link" data-nav="progress" href="progress.html"><span class="e">📊</span>Progress</a>
+  <a class="side-link" data-nav="revision" href="revision.html"><span class="e">🔁</span>Revision</a>
+  <a class="side-link" data-nav="settings" href="settings.html"><span class="e">⚙️</span>Settings</a>
+  <div class="side-foot"><button class="mini-btn" data-theme-toggle>🌙 Dark</button><div class="mt"><a href="index.html">← Landing</a></div></div>
+</aside>
+<div class="main">
+  <div class="topbar"><button class="hamb" onclick="toggleSidebar()">☰</button><h1>🗓️ Study Planner</h1><span class="tag" id="pct">0% done</span></div>
+  <div class="content">
+    <div class="card">
+      <div class="row c3">
+        <div><label class="lbl">Subjects (comma separated)</label><input type="text" id="subjects" value="Java, DBMS"></div>
+        <div><label class="lbl">Topics (comma separated)</label><input type="text" id="topics" value="Arrays, Loops, Methods, OOP"></div>
+        <div><label class="lbl">Exam date</label><input type="date" id="exam"></div>
+      </div>
+      <div class="row c3">
+        <div><label class="lbl">Hours / day</label><input type="number" id="hours" value="2" min="1" max="12"></div>
+        <div><label class="lbl">Level</label><select id="level"><option>Beginner</option><option>Intermediate</option><option>Advanced</option></select></div>
+        <div><label class="lbl">Priority subjects</label><input type="text" id="prio" placeholder="e.g. Java"></div>
+      </div>
+      <div class="flex mt"><button class="btn" id="gen">Generate plan ✨</button><button class="btn ghost" id="add">+ Add task</button><button class="btn outline" id="clear">Clear all</button></div>
+    </div>
+    <div class="card mt"><div class="progress"><div id="bar" style="width:0%"></div></div><div class="mt" style="overflow:auto"><table class="table"><thead><tr><th>✔</th><th>Date</th><th>Subject</th><th>Topic</th><th>Duration</th><th>Task</th><th>Revision</th><th>Practice</th><th></th></tr></thead><tbody id="rows"></tbody></table></div><div id="empty" class="empty">No plan yet — generate one above. ✨</div></div>
+  </div>
+</div>
+</div>
+<nav class="bottomnav"><a data-nav="dashboard" href="dashboard.html">🏠<span>Home</span></a><a data-nav="tutor" href="tutor.html">🤖<span>Tutor</span></a><a data-nav="quiz" href="quiz.html">🎯<span>Quiz</span></a><a data-nav="notes" href="notes.html">📝<span>Notes</span></a><a data-nav="settings" href="settings.html">⚙️<span>More</span></a></nav>
+<script src="js/storage.js"></script>
+<script src="js/ai.js"></script>
+<script src="js/app.js"></script>
+<script>
+function render(){
+  const t=Store.get('tasks',[]);
+  const pct=Progress.completion();
+  document.getElementById('pct').textContent=pct+'% done';
+  document.getElementById('bar').style.width=pct+'%';
+  document.getElementById('empty').style.display=t.length?'none':'block';
+  document.getElementById('rows').innerHTML=t.map(x=>`<tr><td><input type="checkbox" data-done="${x.id}" ${x.done?'checked':''}></td><td>${x.date}</td><td>${AIEngine.esc(x.subject)}</td><td>${AIEngine.esc(x.topic)}</td><td>${AIEngine.esc(x.duration)}</td><td>${AIEngine.esc(x.task)}</td><td class="muted">${AIEngine.esc(x.revision||'')}</td><td class="muted">${AIEngine.esc(x.practice||'')}</td><td class="flex"><button class="mini-btn" data-edit="${x.id}">Edit</button><button class="mini-btn" data-del="${x.id}">✕</button></td></tr>`).join('');
+  document.querySelectorAll('[data-done]').forEach(c=>c.onchange=()=>{const a=Store.get('tasks',[]);const it=a.find(y=>y.id===c.dataset.done);it.done=c.checked;Store.set('tasks',a);render();});
+  document.querySelectorAll('[data-del]').forEach(b=>b.onclick=()=>{Store.removeAt('tasks',b.dataset.del);render();});
+  document.querySelectorAll('[data-edit]').forEach(b=>b.onclick=()=>{
+    const a=Store.get('tasks',[]);const it=a.find(y=>y.id===b.dataset.edit);
+    const nt=prompt('Edit task:',it.task); if(nt===null)return; it.task=nt;
+    const nd=prompt('Edit topic:',it.topic); if(nd!==null&&nd.trim())it.topic=nd;
+    Store.set('tasks',a);render();
+  });
+}
+document.getElementById('gen').onclick=()=>{
+  const plan=AIEngine.studyPlan({subjects:document.getElementById('subjects').value,topics:document.getElementById('topics').value,examDate:document.getElementById('exam').value,hours:document.getElementById('hours').value||2,level:document.getElementById('level').value,priorities:document.getElementById('prio').value});
+  if(!plan.length){toast('Could not build plan','err');return;}
+  const old=Store.get('tasks',[]); Store.set('tasks',[...plan,...old].slice(0,200));
+  Store.push('history',{id:Store.uid(),kind:'plan',text:'Study plan: '+plan.length+' days',ts:Date.now()});
+  render(); toast('Plan generated ✓','ok');
+};
+document.getElementById('add').onclick=()=>{
+  const s=prompt('Subject:'); if(!s)return; const t=prompt('Topic:'); if(!t)return;
+  const a=Store.get('tasks',[]);a.unshift({id:Store.uid(),date:Store.today(),subject:s,topic:t,duration:'1h',task:'Study '+t,revision:'Revise notes',practice:'5 Qs',done:false,priority:'Normal'});
+  Store.set('tasks',a);render();
+};
+document.getElementById('clear').onclick=()=>{if(confirm('Delete all tasks?')){Store.set('tasks',[]);render();}};
+render();
+</script>
+</body>
+</html>

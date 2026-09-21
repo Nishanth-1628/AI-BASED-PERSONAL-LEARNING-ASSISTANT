@@ -1,0 +1,128 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Study Materials — LearnMate</title>
+<link rel="stylesheet" href="css/style.css">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/mammoth/1.6.0/mammoth.browser.min.js"></script>
+</head>
+<body data-page="materials">
+<div class="shell">
+<aside class="sidebar">
+  <div class="side-logo"><span class="logo-mark">🎓</span> LearnMate</div>
+  <a class="side-link" data-nav="dashboard" href="dashboard.html"><span class="e">🏠</span>Dashboard</a>
+  <a class="side-link" data-nav="tutor" href="tutor.html"><span class="e">🤖</span>AI Tutor</a>
+  <a class="side-link" data-nav="learn" href="learn.html"><span class="e">📚</span>Learn</a>
+  <a class="side-link" data-nav="notes" href="notes.html"><span class="e">📝</span>Notes</a>
+  <a class="side-link" data-nav="quiz" href="quiz.html"><span class="e">🎯</span>Quiz</a>
+  <a class="side-link" data-nav="plan" href="study-plan.html"><span class="e">🗓️</span>Study Plan</a>
+  <a class="side-link" data-nav="flash" href="flashcards.html"><span class="e">🃏</span>Flashcards</a>
+  <a class="side-link" data-nav="materials" href="materials.html"><span class="e">📂</span>Materials</a>
+  <a class="side-link" data-nav="progress" href="progress.html"><span class="e">📊</span>Progress</a>
+  <a class="side-link" data-nav="revision" href="revision.html"><span class="e">🔁</span>Revision</a>
+  <a class="side-link" data-nav="settings" href="settings.html"><span class="e">⚙️</span>Settings</a>
+  <div class="side-foot"><button class="mini-btn" data-theme-toggle>🌙 Dark</button><div class="mt"><a href="index.html">← Landing</a></div></div>
+</aside>
+<div class="main">
+  <div class="topbar"><button class="hamb" onclick="toggleSidebar()">☰</button><h1>📂 Study Materials</h1></div>
+  <div class="content">
+    <div class="panels">
+      <div class="card">
+        <h3 style="margin-top:0">Upload learning material</h3>
+        <p class="muted">Supported: <b>.txt / .md</b> (always), <b>.pdf</b> (via PDF.js CDN), <b>.docx</b> (via Mammoth CDN). If a library can't load offline, you'll get a clear message — never a fake result.</p>
+        <input type="file" id="file" accept=".txt,.md,.pdf,.doc,.docx">
+        <div id="status" class="mt"></div>
+        <div class="flex mt" id="actions" style="display:none">
+          <button class="btn small" id="sum">Summarize</button>
+          <button class="btn ghost small" id="mnotes">Generate notes</button>
+          <button class="btn ghost small" id="mquiz">Generate quiz</button>
+          <button class="btn ghost small" id="mflash">Flashcards</button>
+        </div>
+        <div class="mt"><label class="lbl">Ask about this material</label><div class="flex"><input type="text" id="mq" placeholder="e.g. Summarize key points" style="flex:1"><button class="btn small" id="mask">Ask</button></div></div>
+      </div>
+      <div class="card"><h3 style="margin-top:0">📚 Your files</h3><div id="files"></div></div>
+    </div>
+    <div class="card mt" id="out" style="display:none"><div class="space"><h3 style="margin:0">Result</h3><button class="mini-btn" onclick="copyHtml('mbody')">📋 Copy</button></div><div id="mbody"></div></div>
+  </div>
+</div>
+</div>
+<nav class="bottomnav"><a data-nav="dashboard" href="dashboard.html">🏠<span>Home</span></a><a data-nav="tutor" href="tutor.html">🤖<span>Tutor</span></a><a data-nav="quiz" href="quiz.html">🎯<span>Quiz</span></a><a data-nav="notes" href="notes.html">📝<span>Notes</span></a><a data-nav="settings" href="settings.html">⚙️<span>More</span></a></nav>
+<script src="js/storage.js"></script>
+<script src="js/ai.js"></script>
+<script src="js/app.js"></script>
+<script>
+let CURRENT=null;
+const fmt = b => b>1048576?(b/1048576).toFixed(2)+' MB':b>1024?(b/1024).toFixed(1)+' KB':b+' B';
+function renderFiles(){
+  const f=Store.get('materials',[]);
+  document.getElementById('files').innerHTML=f.length?f.map(x=>`<div class="flex" style="justify-content:space-between;border-bottom:1px solid var(--border);padding:8px 0"><span>📄 <b>${AIEngine.esc(x.name)}</b> <span class="muted">${fmt(x.size)} • ${x.text.length} chars</span></span><span class="flex"><button class="mini-btn" data-o="${x.id}">Open</button><button class="mini-btn" data-x="${x.id}">✕</button></span></div>`).join(''):'<div class="empty">No files yet. Upload a .txt to try instantly.</div>';
+  document.querySelectorAll('[data-o]').forEach(b=>b.onclick=()=>{CURRENT=Store.get('materials',[]).find(x=>x.id===b.dataset.o);showStatus(`Opened <b>${AIEngine.esc(CURRENT.name)}</b> (${fmt(CURRENT.size)}) — ready.`,'ok');document.getElementById('actions').style.display='flex';});
+  document.querySelectorAll('[data-x]').forEach(b=>b.onclick=()=>{Store.removeAt('materials',b.dataset.x);renderFiles();});
+}
+function showStatus(html,kind){document.getElementById('status').innerHTML=`<div class="alert ${kind||''}">${html}</div>`;}
+function showOut(html){document.getElementById('out').style.display='block';document.getElementById('mbody').innerHTML=html;document.getElementById('out').scrollIntoView({behavior:'smooth'});}
+document.getElementById('file').addEventListener('change',async e=>{
+  const f=e.target.files[0]; if(!f)return;
+  const ext=(f.name.split('.').pop()||'').toLowerCase();
+  showStatus(`Reading <b>${AIEngine.esc(f.name)}</b> (${fmt(f.size)})…`);
+  try{
+    let text='';
+    if(['txt','md'].includes(ext)){ text=await f.text(); }
+    else if(ext==='pdf'){
+      if(typeof pdfjsLib==='undefined') throw new Error('PDF engine (PDF.js CDN) could not load — check internet, or convert the PDF to .txt and upload again.');
+      pdfjsLib.GlobalWorkerOptions.workerSrc='https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+      const buf=await f.arrayBuffer();
+      const pdf=await pdfjsLib.getDocument({data:buf}).promise;
+      let pages=[]; const n=Math.min(pdf.numPages,30);
+      for(let i=1;i<=n;i++){const p=await pdf.getPage(i);const c=await p.getTextContent();pages.push(c.items.map(it=>it.str).join(' '));}
+      text=pages.join('\n');
+      if(pdf.numPages>30) text+='\n[Note: only first 30 pages extracted.]';
+    }
+    else if(ext==='docx'){
+      if(typeof mammoth==='undefined') throw new Error('DOCX engine (Mammoth CDN) could not load — check internet, or save the file as .txt and upload again.');
+      const buf=await f.arrayBuffer(); const r=await mammoth.extractRawText({arrayBuffer:buf}); text=r.value;
+    }
+    else if(ext==='doc'){ throw new Error('.doc (legacy Word) cannot be parsed in-browser. Please open it in Word/Google Docs and save as .docx or .txt, then upload.'); }
+    else throw new Error('Unsupported format ".'+ext+'". Please upload .txt, .md, .pdf or .docx.');
+    text=(text||'').trim();
+    if(!text) throw new Error('No readable text found in this file (it may be scanned images). Try an OCR step or upload a text version.');
+    CURRENT={id:Store.uid(),name:f.name,size:f.size,text:text.slice(0,60000),ts:Date.now()};
+    Store.push('materials',CURRENT);
+    showStatus(`✅ <b>${AIEngine.esc(f.name)}</b> uploaded — ${fmt(f.size)}, ${CURRENT.text.length} characters extracted.`,'ok');
+    document.getElementById('actions').style.display='flex';
+    Store.push('history',{id:Store.uid(),kind:'material',text:f.name,ts:Date.now()});
+    renderFiles();
+  }catch(err){ showStatus('⚠️ '+AIEngine.esc(err.message),'err'); }
+});
+const need=()=>{ if(!CURRENT){toast('Upload/open a file first','err');return null;} return CURRENT; };
+document.getElementById('sum').onclick=()=>{
+  const c=need(); if(!c)return;
+  const sents=c.text.split(/(?<=[.!?])\s+/).filter(s=>s.length>30);
+  const top=sents.slice(0,8);
+  showOut(`<h4>📄 Summary — ${AIEngine.esc(c.name)}</h4><ul>${top.map(s=>`<li>${AIEngine.esc(s.slice(0,220))}</li>`).join('')}</ul><p class="muted">Auto-extracted ${top.length} key sentences from ${c.text.length} characters.</p>`);
+};
+document.getElementById('mnotes').onclick=()=>{const c=need();if(!c)return;showOut(AIEngine.notes('Your material',c.name,c.text.slice(0,3000),'Detailed Notes'));};
+document.getElementById('mquiz').onclick=()=>{
+  const c=need();if(!c)return;
+  const sents=c.text.split(/(?<=[.!?])\s+/).filter(s=>s.length>40).slice(0,5);
+  if(sents.length<2){toast('Not enough text for a quiz','err');return;}
+  const qs=sents.map((s,i)=>({q:`According to the material, which is true? (${i+1})`,opts:[s.slice(0,120),'The opposite of the above','Something unrelated','None of these'],a:0,why:'Taken directly from: “'+s.slice(0,140)+'…”',topic:c.name}));
+  sessionStorage.setItem('mat_quiz',JSON.stringify(qs));
+  showOut(`<h4>🎯 Generated ${qs.length} questions from ${AIEngine.esc(c.name)}</h4>${qs.map((q,i)=>`<p><b>Q${i+1}.</b> ${AIEngine.esc(q.q)}<br><span class="muted">Answer: ${AIEngine.esc(q.opts[0])}</span></p>`).join('')}<p class="muted">Full interactive quiz with scoring lives on the Quiz page — generic engine covers any topic there.</p>`);
+};
+document.getElementById('mflash').onclick=()=>{const c=need();if(!c)return;sessionStorage.setItem('flash_pref',c.name);sessionStorage.setItem('flash_src',c.text.slice(0,4000));location.href='flashcards.html';};
+document.getElementById('mask').onclick=async()=>{
+  const c=need();const q=document.getElementById('mq').value.trim();
+  if(!c)return; if(!q){toast('Type a question about the material','err');return;}
+  const lang=(Store.get('settings',{}).lang||'en');
+  const ctx=c.text.slice(0,4000);
+  const hit=ctx.split(/(?<=[.!?])\s+/).filter(s=>s.length>25&&q.split(/\s+/).some(w=>w.length>3&&s.toLowerCase().includes(w.toLowerCase()))).slice(0,3);
+  showOut(`${AIEngine.tutorReply(q,{language:lang})}<h4>📎 Evidence from “${AIEngine.esc(c.name)}”</h4>${hit.length?'<ul>'+hit.map(s=>`<li>${AIEngine.esc(s.slice(0,240))}</li>`).join('')+'</ul>':'<p class="muted">No direct keyword match — answer above is the tutor explanation; rephrase with words from the document for grounded quotes.</p>'}`);
+};
+// prefill flash source
+if(sessionStorage.getItem('flash_src')){/* consumed on flashcards page */}
+renderFiles();
+</script>
+</body>
+</html>

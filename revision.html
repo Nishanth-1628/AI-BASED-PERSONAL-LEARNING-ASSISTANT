@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Revision Mode — LearnMate</title>
+<link rel="stylesheet" href="css/style.css">
+</head>
+<body data-page="revision">
+<div class="shell">
+<aside class="sidebar">
+  <div class="side-logo"><span class="logo-mark">🎓</span> LearnMate</div>
+  <a class="side-link" data-nav="dashboard" href="dashboard.html"><span class="e">🏠</span>Dashboard</a>
+  <a class="side-link" data-nav="tutor" href="tutor.html"><span class="e">🤖</span>AI Tutor</a>
+  <a class="side-link" data-nav="learn" href="learn.html"><span class="e">📚</span>Learn</a>
+  <a class="side-link" data-nav="notes" href="notes.html"><span class="e">📝</span>Notes</a>
+  <a class="side-link" data-nav="quiz" href="quiz.html"><span class="e">🎯</span>Quiz</a>
+  <a class="side-link" data-nav="plan" href="study-plan.html"><span class="e">🗓️</span>Study Plan</a>
+  <a class="side-link" data-nav="flash" href="flashcards.html"><span class="e">🃏</span>Flashcards</a>
+  <a class="side-link" data-nav="materials" href="materials.html"><span class="e">📂</span>Materials</a>
+  <a class="side-link" data-nav="progress" href="progress.html"><span class="e">📊</span>Progress</a>
+  <a class="side-link" data-nav="revision" href="revision.html"><span class="e">🔁</span>Revision</a>
+  <a class="side-link" data-nav="settings" href="settings.html"><span class="e">⚙️</span>Settings</a>
+  <div class="side-foot"><button class="mini-btn" data-theme-toggle>🌙 Dark</button><div class="mt"><a href="index.html">← Landing</a></div></div>
+</aside>
+<div class="main">
+  <div class="topbar"><button class="hamb" onclick="toggleSidebar()">☰</button><h1>🔁 Revision Mode</h1><button class="btn small" id="quick">⚡ Start Quick Revision</button></div>
+  <div class="content">
+    <div class="grid3" id="sets"></div>
+    <div class="card mt" id="sess" style="display:none"><div class="space"><h3 style="margin:0">⚡ Quick revision session</h3><button class="mini-btn" onclick="copyHtml('sessBody')">📋 Copy</button></div><div id="sessBody"></div></div>
+  </div>
+</div>
+</div>
+<nav class="bottomnav"><a data-nav="dashboard" href="dashboard.html">🏠<span>Home</span></a><a data-nav="tutor" href="tutor.html">🤖<span>Tutor</span></a><a data-nav="quiz" href="quiz.html">🎯<span>Quiz</span></a><a data-nav="notes" href="notes.html">📝<span>Notes</span></a><a data-nav="settings" href="settings.html">⚙️<span>More</span></a></nav>
+<script src="js/storage.js"></script>
+<script src="js/ai.js"></script>
+<script src="js/app.js"></script>
+<script>
+const stats=Store.get('stats',{topics:[]});
+const notes=Store.get('notes',[]);
+const cards=Store.get('cards',[]).filter(c=>c.hard);
+const wrong=[];(Store.get('quizResults',[])||[]).forEach(r=>(r.details||[]).forEach(d=>{if(!d.ok)wrong.push(d);}));
+const learned=Store.get('history',[]).filter(h=>h.kind==='lesson');
+document.getElementById('sets').innerHTML=`
+<div class="card"><h3>📚 Learned (${learned.length})</h3><p class="muted">${learned.slice(0,4).map(x=>AIEngine.esc(x.text)).join('<br>')||'Nothing yet — <a href="learn.html">learn a topic →</a>'}</p></div>
+<div class="card"><h3>📝 Saved notes (${notes.length})</h3><p class="muted">${notes.slice(0,4).map(x=>AIEngine.esc(x.subject+' — '+x.topic)).join('<br>')||'No notes — <a href="notes.html">create →</a>'}</p></div>
+<div class="card"><h3>🧠 Difficult cards (${cards.length})</h3><p class="muted">${cards.slice(0,4).map(x=>AIEngine.esc(x.f)).join('<br>')||'No difficult cards 🎉'}</p></div>
+<div class="card"><h3>❌ Wrong answers (${wrong.length})</h3><p class="muted">${wrong.slice(0,3).map(x=>AIEngine.esc(x.q)).join('<br>')||'No mistakes recorded.'}</p></div>
+<div class="card"><h3>⭐ Key concepts</h3><p class="muted">${(stats.topics||[]).slice(-4).map(AIEngine.esc).join('<br>')||'Complete a lesson to lock concepts.'}</p></div>
+<div class="card"><h3>🎯 weak topics</h3><p class="muted">${((AIEngine.weakness()?.weak||[]).slice(0,3).map(r=>AIEngine.esc(r.topic))).join('<br>')||'Take a quiz to detect weak spots.'}</p></div>`;
+document.getElementById('quick').onclick=()=>{
+  if(!learned.length&&!notes.length&&!wrong.length&&!cards.length){toast('Learn something or take a quiz first','err');return;}
+  const w=AIEngine.weakness();
+  let h=`<h4>⚡ 10-minute revision (${new Date().toLocaleDateString()})</h4><ol>`;
+  if(wrong.length){h+=`<li><b>Fix mistakes (4 min):</b> ${AIEngine.esc(wrong[0].q)} → Correct: <b>${AIEngine.esc(wrong[0].answer)}</b>. Why: ${AIEngine.esc(wrong[0].why||'')}</li>`;}
+  if(cards.length){h+=`<li><b>Flash recall (3 min):</b> ${AIEngine.esc(cards[0].f)} → say answer aloud, then check: ${AIEngine.esc(cards[0].b.slice(0,160))}</li>`;}
+  if(notes.length){const d=document.createElement('div');d.innerHTML=notes[0].html;h+=`<li><b>Notes sweep (2 min):</b> re-read “${AIEngine.esc(notes[0].subject+' — '+notes[0].topic)}” headings only.</li>`;}
+  if(learned.length){h+=`<li><b>Teach-back (1 min):</b> explain “${AIEngine.esc(learned[0].text)}” in 3 lines without looking.</li>`;}
+  h+=`</ol><h4>✅ Done? Next</h4><p>${w&&w.weak.length?`Your weakest topic is <b>${AIEngine.esc(w.weak[0].topic)}</b> (${w.weak[0].acc}%) — <a href="quiz.html">retake a quiz →</a>`:'Strong so far — attempt a Hard quiz to stretch.'}</p>`;
+  document.getElementById('sess').style.display='block';
+  document.getElementById('sessBody').innerHTML=h;
+  Progress.bumpStudyMinutes(5);
+  document.getElementById('sess').scrollIntoView({behavior:'smooth'});
+};
+</script>
+</body>
+</html>

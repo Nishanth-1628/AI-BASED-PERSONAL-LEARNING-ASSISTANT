@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Learn a Topic — LearnMate</title>
+<link rel="stylesheet" href="css/style.css">
+</head>
+<body data-page="learn">
+<div class="shell">
+<aside class="sidebar">
+  <div class="side-logo"><span class="logo-mark">🎓</span> LearnMate</div>
+  <a class="side-link" data-nav="dashboard" href="dashboard.html"><span class="e">🏠</span>Dashboard</a>
+  <a class="side-link" data-nav="tutor" href="tutor.html"><span class="e">🤖</span>AI Tutor</a>
+  <a class="side-link" data-nav="learn" href="learn.html"><span class="e">📚</span>Learn</a>
+  <a class="side-link" data-nav="notes" href="notes.html"><span class="e">📝</span>Notes</a>
+  <a class="side-link" data-nav="quiz" href="quiz.html"><span class="e">🎯</span>Quiz</a>
+  <a class="side-link" data-nav="plan" href="study-plan.html"><span class="e">🗓️</span>Study Plan</a>
+  <a class="side-link" data-nav="flash" href="flashcards.html"><span class="e">🃏</span>Flashcards</a>
+  <a class="side-link" data-nav="materials" href="materials.html"><span class="e">📂</span>Materials</a>
+  <a class="side-link" data-nav="progress" href="progress.html"><span class="e">📊</span>Progress</a>
+  <a class="side-link" data-nav="revision" href="revision.html"><span class="e">🔁</span>Revision</a>
+  <a class="side-link" data-nav="settings" href="settings.html"><span class="e">⚙️</span>Settings</a>
+  <div class="side-foot"><button class="mini-btn" data-theme-toggle>🌙 Dark</button><div class="mt"><a href="index.html">← Landing</a></div></div>
+</aside>
+<div class="main">
+  <div class="topbar"><button class="hamb" onclick="toggleSidebar()">☰</button><h1>📚 Learn a Topic</h1></div>
+  <div class="content">
+    <div class="panels">
+      <div class="card">
+        <label class="lbl">Subject</label><input type="text" id="subject" value="Java" placeholder="e.g. Java">
+        <div class="row c2">
+          <div><label class="lbl">Topic</label><input type="text" id="topic" value="Arrays" placeholder="e.g. Arrays"></div>
+          <div><label class="lbl">Current level</label><select id="level"><option>Beginner</option><option>Intermediate</option><option>Advanced</option></select></div>
+        </div>
+        <label class="lbl">Learning goal</label><input type="text" id="goal" value="Learn for coding interviews" placeholder="e.g. Learn for coding interviews">
+        <div class="flex mt"><button class="btn" id="gen">Generate lesson ✨</button><button class="btn ghost" id="sample">Try sample: Java Arrays</button></div>
+      </div>
+      <div class="card"><h3 style="margin-top:0">💡 How lessons work</h3><p class="muted">You get: overview → simple explanation → key concepts → real-world/code example → mistakes → practice + mini quiz. Use <b>Explain Simpler</b> any time.</p><div class="alert">Sample: Subject <b>Java</b>, Topic <b>Arrays</b>, Level <b>Beginner</b>, Goal <b>coding interviews</b>.</div></div>
+    </div>
+    <div class="card mt" id="out" style="display:none">
+      <div class="space"><h3 style="margin:0">📖 Your lesson</h3><div class="flex no-print"><button class="mini-btn" onclick="copyHtml('lessonBody')">📋 Copy</button><button class="mini-btn" id="simpler">✨ Explain Simpler</button><button class="mini-btn" id="toQuiz">🎯 Quiz me</button><button class="mini-btn" id="toNotes">📝 Make notes</button><button class="mini-btn" id="done">✅ Mark complete</button></div></div>
+      <div id="lessonBody"></div>
+    </div>
+  </div>
+</div>
+</div>
+<nav class="bottomnav"><a data-nav="dashboard" href="dashboard.html">🏠<span>Home</span></a><a data-nav="tutor" href="tutor.html">🤖<span>Tutor</span></a><a data-nav="quiz" href="quiz.html">🎯<span>Quiz</span></a><a data-nav="notes" href="notes.html">📝<span>Notes</span></a><a data-nav="settings" href="settings.html">⚙️<span>More</span></a></nav>
+<script src="js/storage.js"></script>
+<script src="js/ai.js"></script>
+<script src="js/app.js"></script>
+<script>
+let last = null;
+function generate(){
+  const subject=document.getElementById('subject').value.trim(), topic=document.getElementById('topic').value.trim();
+  const level=document.getElementById('level').value, goal=document.getElementById('goal').value.trim();
+  if(!subject||!topic){ toast('Please enter both subject and topic','err'); return; }
+  const lang=(Store.get('settings',{}).lang||'en');
+  last={subject,topic,level,goal,lang};
+  const html=AIEngine.lesson(subject,topic,level,goal,lang);
+  document.getElementById('out').style.display='block';
+  document.getElementById('lessonBody').innerHTML=html;
+  document.getElementById('out').scrollIntoView({behavior:'smooth'});
+  Store.push('history',{id:Store.uid(),kind:'lesson',text:subject+' — '+topic,ts:Date.now()});
+  Progress.bumpStudyMinutes(5);
+}
+document.getElementById('gen').onclick=generate;
+document.getElementById('sample').onclick=()=>{document.getElementById('subject').value='Java';document.getElementById('topic').value='Arrays';document.getElementById('level').value='Beginner';document.getElementById('goal').value='Learn for coding interviews';generate();};
+document.getElementById('simpler').onclick=()=>{
+  if(!last) return;
+  document.getElementById('lessonBody').innerHTML = AIEngine.tutorReply('Explain '+last.topic+' in '+last.subject+' in the simplest words for a child',{language:last.lang,level:'Beginner',simple:true});
+  toast('Simplified ✓','ok');
+};
+document.getElementById('done').onclick=()=>{ if(last){ Progress.addTopic(last.subject+' — '+last.topic); toast('Marked complete ✓','ok'); } };
+document.getElementById('toQuiz').onclick=()=>{ if(last){ sessionStorage.setItem('quiz_pref',JSON.stringify({subject:last.subject,topic:last.topic})); location.href='quiz.html'; } };
+document.getElementById('toNotes').onclick=()=>{ if(last){ sessionStorage.setItem('notes_pref',JSON.stringify({subject:last.subject,topic:last.topic})); location.href='notes.html'; } };
+</script>
+</body>
+</html>

@@ -1,0 +1,96 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Quiz Generator — LearnMate</title>
+<link rel="stylesheet" href="css/style.css">
+</head>
+<body data-page="quiz">
+<div class="shell">
+<aside class="sidebar">
+  <div class="side-logo"><span class="logo-mark">🎓</span> LearnMate</div>
+  <a class="side-link" data-nav="dashboard" href="dashboard.html"><span class="e">🏠</span>Dashboard</a>
+  <a class="side-link" data-nav="tutor" href="tutor.html"><span class="e">🤖</span>AI Tutor</a>
+  <a class="side-link" data-nav="learn" href="learn.html"><span class="e">📚</span>Learn</a>
+  <a class="side-link" data-nav="notes" href="notes.html"><span class="e">📝</span>Notes</a>
+  <a class="side-link" data-nav="quiz" href="quiz.html"><span class="e">🎯</span>Quiz</a>
+  <a class="side-link" data-nav="plan" href="study-plan.html"><span class="e">🗓️</span>Study Plan</a>
+  <a class="side-link" data-nav="flash" href="flashcards.html"><span class="e">🃏</span>Flashcards</a>
+  <a class="side-link" data-nav="materials" href="materials.html"><span class="e">📂</span>Materials</a>
+  <a class="side-link" data-nav="progress" href="progress.html"><span class="e">📊</span>Progress</a>
+  <a class="side-link" data-nav="revision" href="revision.html"><span class="e">🔁</span>Revision</a>
+  <a class="side-link" data-nav="settings" href="settings.html"><span class="e">⚙️</span>Settings</a>
+  <div class="side-foot"><button class="mini-btn" data-theme-toggle>🌙 Dark</button><div class="mt"><a href="index.html">← Landing</a></div></div>
+</aside>
+<div class="main">
+  <div class="topbar"><button class="hamb" onclick="toggleSidebar()">☰</button><h1>🎯 AI Quiz Generator</h1></div>
+  <div class="content">
+    <div class="card">
+      <div class="row c4">
+        <div><label class="lbl">Subject</label><input type="text" id="subject" value="Java"></div>
+        <div><label class="lbl">Topic</label><input type="text" id="topic" value="Arrays"></div>
+        <div><label class="lbl">Difficulty</label><select id="diff"><option>Easy</option><option>Medium</option><option>Hard</option></select></div>
+        <div><label class="lbl">Questions</label><input type="number" id="count" value="5" min="1" max="20"></div>
+      </div>
+      <button class="btn mt" id="gen">Generate quiz ✨</button>
+    </div>
+    <div class="card mt" id="qcard" style="display:none">
+      <div class="space"><h3 style="margin:0" id="qtitle">Quiz</h3><span class="tag" id="qtimer"></span></div>
+      <div id="qs"></div>
+      <button class="btn mt" id="submit">Submit answers</button>
+    </div>
+    <div class="card mt" id="res" style="display:none"></div>
+  </div>
+</div>
+</div>
+<nav class="bottomnav"><a data-nav="dashboard" href="dashboard.html">🏠<span>Home</span></a><a data-nav="tutor" href="tutor.html">🤖<span>Tutor</span></a><a data-nav="quiz" href="quiz.html">🎯<span>Quiz</span></a><a data-nav="notes" href="notes.html">📝<span>Notes</span></a><a data-nav="settings" href="settings.html">⚙️<span>More</span></a></nav>
+<script src="js/storage.js"></script>
+<script src="js/ai.js"></script>
+<script src="js/app.js"></script>
+<script>
+let QUIZ=[], ANSWERS={};
+try{const p=JSON.parse(sessionStorage.getItem('quiz_pref')||'null');if(p){document.getElementById('subject').value=p.subject||'';document.getElementById('topic').value=p.topic||'';sessionStorage.removeItem('quiz_pref');}}catch{}
+document.getElementById('gen').onclick=()=>{
+  const s=document.getElementById('subject').value.trim(),t=document.getElementById('topic').value.trim();
+  const d=document.getElementById('diff').value;let n=parseInt(document.getElementById('count').value||'5',10);
+  if(!s||!t){toast('Enter subject and topic','err');return;}
+  if(!(n>=1&&n<=20)){toast('Questions must be 1–20','err');return;}
+  QUIZ=AIEngine.quiz(s,t,d,n);ANSWERS={};
+  document.getElementById('qtitle').textContent=`${s} — ${t} (${d}, ${n} Qs)`;
+  document.getElementById('qcard').style.display='block';document.getElementById('res').style.display='none';
+  document.getElementById('qs').innerHTML=QUIZ.map((q,i)=>`<div style="border-bottom:1px solid var(--border);padding:14px 0"><b>Q${i+1}. ${AIEngine.esc(q.q)}</b>${q.opts.map((o,k)=>`<button class="opt" data-q="${i}" data-k="${k}">${String.fromCharCode(65+k)}. ${AIEngine.esc(o)}</button>`).join('')}</div>`).join('');
+  document.querySelectorAll('.opt').forEach(b=>b.onclick=()=>{
+    const qi=+b.dataset.q;ANSWERS[qi]=+b.dataset.k;
+    document.querySelectorAll(`.opt[data-q="${qi}"]`).forEach(x=>x.classList.remove('sel'));b.classList.add('sel');
+  });
+  document.getElementById('qcard').scrollIntoView({behavior:'smooth'});
+};
+document.getElementById('submit').onclick=()=>{
+  if(!QUIZ.length)return;
+  const un=QUIZ.filter((_,i)=>!(i in ANSWERS)).length;
+  if(un){toast(un+' question(s) unanswered — submitting anyway');}
+  let correct=0;const details=QUIZ.map((q,i)=>{const ok=ANSWERS[i]===q.a;if(ok)correct++;return{q:q.q,topic:q.topic,ok,picked:q.opts[ANSWERS[i]]??'—',answer:q.opts[q.a],why:q.why};});
+  const pct=Math.round(correct/QUIZ.length*100);
+  // paint
+  document.querySelectorAll('.opt').forEach(b=>{
+    const qi=+b.dataset.q,k=+b.dataset.k,q=QUIZ[qi];
+    if(k===q.a)b.classList.add('right');else if(ANSWERS[qi]===k)b.classList.add('wrong');
+    b.disabled=true;
+  });
+  const s=document.getElementById('subject').value.trim(),t=document.getElementById('topic').value.trim(),d=document.getElementById('diff').value;
+  Store.push('quizResults',{id:Store.uid(),subject:s,topic:t,difficulty:d,score:correct,total:QUIZ.length,pct,details,ts:Date.now()});
+  Store.push('history',{id:Store.uid(),kind:'quiz',text:`${s} — ${t}: ${correct}/${QUIZ.length} (${pct}%)`,ts:Date.now()});
+  Progress.bumpStudyMinutes(5);Progress.addQuiz(pct);
+  const wrong=details.filter(x=>!x.ok);
+  document.getElementById('res').style.display='block';
+  document.getElementById('res').innerHTML=`<h3>🏆 Score: ${correct}/${QUIZ.length} (${pct}%) ${pct>=80?'🎉':pct>=50?'💪':'📚'}</h3>
+  <div class="progress"><div style="width:${pct}%"></div></div>
+  <p><span class="tag green">✔ ${correct} correct</span> <span class="tag red">✘ ${QUIZ.length-correct} wrong</span> <span class="tag">${AIEngine.esc(t)} performance: ${pct}%</span></p>
+  ${wrong.length?`<h4>❌ Review these</h4><ul>${wrong.map(x=>`<li><b>${AIEngine.esc(x.q)}</b><br>Your answer: ${AIEngine.esc(x.picked)} | Correct: <b>${AIEngine.esc(x.answer)}</b><br><span class="muted">${AIEngine.esc(x.why)}</span></li>`).join('')}</ul>`:'<div class="alert ok">Perfect! Try Hard difficulty next. 🎉</div>'}
+  <h4>💡 Improvement suggestions</h4><ul><li>${pct<70?'Revise '+AIEngine.esc(t)+' notes, then retake this quiz in 24h.':'Great grip — attempt Hard + timed practice.'}</li><li>Convert wrong answers into flashcards (<a href="flashcards.html">open flashcards →</a>).</li><li>Ask the tutor to re-explain what you missed (<a href="tutor.html">AI Tutor →</a>).</li></ul>
+  <div class="flex"><a class="btn small" href="revision.html">Revise wrong answers →</a><button class="mini-btn" onclick="location.reload()">↻ New quiz</button></div>`;
+  document.getElementById('res').scrollIntoView({behavior:'smooth'});
+};
+</script>
+</body>
+</html>

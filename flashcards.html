@@ -1,0 +1,99 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Flashcards — LearnMate</title>
+<link rel="stylesheet" href="css/style.css">
+</head>
+<body data-page="flash">
+<div class="shell">
+<aside class="sidebar">
+  <div class="side-logo"><span class="logo-mark">🎓</span> LearnMate</div>
+  <a class="side-link" data-nav="dashboard" href="dashboard.html"><span class="e">🏠</span>Dashboard</a>
+  <a class="side-link" data-nav="tutor" href="tutor.html"><span class="e">🤖</span>AI Tutor</a>
+  <a class="side-link" data-nav="learn" href="learn.html"><span class="e">📚</span>Learn</a>
+  <a class="side-link" data-nav="notes" href="notes.html"><span class="e">📝</span>Notes</a>
+  <a class="side-link" data-nav="quiz" href="quiz.html"><span class="e">🎯</span>Quiz</a>
+  <a class="side-link" data-nav="plan" href="study-plan.html"><span class="e">🗓️</span>Study Plan</a>
+  <a class="side-link" data-nav="flash" href="flashcards.html"><span class="e">🃏</span>Flashcards</a>
+  <a class="side-link" data-nav="materials" href="materials.html"><span class="e">📂</span>Materials</a>
+  <a class="side-link" data-nav="progress" href="progress.html"><span class="e">📊</span>Progress</a>
+  <a class="side-link" data-nav="revision" href="revision.html"><span class="e">🔁</span>Revision</a>
+  <a class="side-link" data-nav="settings" href="settings.html"><span class="e">⚙️</span>Settings</a>
+  <div class="side-foot"><button class="mini-btn" data-theme-toggle>🌙 Dark</button><div class="mt"><a href="index.html">← Landing</a></div></div>
+</aside>
+<div class="main">
+  <div class="topbar"><button class="hamb" onclick="toggleSidebar()">☰</button><h1>🃏 Flashcards</h1><span class="tag" id="count">0 cards</span></div>
+  <div class="content">
+    <div class="card">
+      <div class="row c3">
+        <div><label class="lbl">Topic</label><input type="text" id="topic" value="Java Arrays"></div>
+        <div style="grid-column:span 2"><label class="lbl">Source text (optional — or pick saved notes / material below)</label><input type="text" id="src" placeholder="Paste text, or generate directly from topic"></div>
+      </div>
+      <div class="flex mt"><button class="btn" id="gen">Generate flashcards ✨</button>
+        <select id="fromNotes" style="max-width:260px"><option value="">…or from saved notes</option></select>
+        <button class="btn ghost" id="diffOnly">🧠 Difficult only</button>
+      </div>
+    </div>
+    <div id="viewer" class="mt" style="display:none">
+      <div class="flash" id="flash"><div class="flash-inner">
+        <div class="face front"><small class="tag">QUESTION • tap to flip</small><h2 id="ff"></h2></div>
+        <div class="face back"><small class="tag">ANSWER • tap to flip back</small><p id="fb" style="font-size:1.05rem"></p></div>
+      </div></div>
+      <div class="flex" style="justify-content:center;margin-top:14px"><span class="tag" id="pos"></span></div>
+      <div class="flash-ctrl no-print">
+        <button class="btn ghost small" id="prev">← Prev</button>
+        <button class="btn small" id="flip">🔄 Flip</button>
+        <button class="btn ghost small" id="next">Next →</button>
+        <button class="btn ghost small" id="easy">😊 Easy</button>
+        <button class="btn ghost small" id="hard">🧠 Difficult</button>
+      </div>
+    </div>
+  </div>
+</div>
+</div>
+<nav class="bottomnav"><a data-nav="dashboard" href="dashboard.html">🏠<span>Home</span></a><a data-nav="tutor" href="tutor.html">🤖<span>Tutor</span></a><a data-nav="quiz" href="quiz.html">🎯<span>Quiz</span></a><a data-nav="notes" href="notes.html">📝<span>Notes</span></a><a data-nav="settings" href="settings.html">⚙️<span>More</span></a></nav>
+<script src="js/storage.js"></script>
+<script src="js/ai.js"></script>
+<script src="js/app.js"></script>
+<script>
+let CARDS=[], I=0, filterDiff=false;
+const notes=Store.get('notes',[]);
+const sel=document.getElementById('fromNotes');
+notes.forEach(n=>{const o=document.createElement('option');o.value=n.id;o.textContent=n.subject+' — '+n.topic;sel.appendChild(o);});
+try{const f=sessionStorage.getItem('flash_pref');if(f){document.getElementById('topic').value=f;sessionStorage.removeItem('flash_pref');}}catch{}
+function show(){
+  document.getElementById('count').textContent=CARDS.length+' cards'+(filterDiff?' (difficult)':'');
+  if(!CARDS.length){document.getElementById('viewer').style.display='none';return;}
+  document.getElementById('viewer').style.display='block';
+  I=Math.max(0,Math.min(I,CARDS.length-1));
+  const c=CARDS[I];
+  document.getElementById('ff').textContent=c.f;document.getElementById('fb').textContent=c.b;
+  document.getElementById('pos').textContent=(I+1)+' / '+CARDS.length+(c.hard?' • 🧠 difficult':'');
+  document.getElementById('flash').classList.remove('flipped');
+}
+function visibleCards(){const all=Store.get('cards',[]);return filterDiff?all.filter(c=>c.hard):all;}
+document.getElementById('gen').onclick=()=>{
+  const t=document.getElementById('topic').value.trim();
+  if(!t){toast('Enter a topic','err');return;}
+  let src=document.getElementById('src').value;
+  if(sel.value){const n=notes.find(x=>x.id===sel.value);if(n){const d=document.createElement('div');d.innerHTML=n.html;src=d.innerText;}}
+  const gen=AIEngine.flashcards(t,src).map(c=>({id:Store.uid(),topic:t,f:c.f,b:c.b,hard:false,ts:Date.now()}));
+  Store.set('cards',[...gen,...Store.get('cards',[])].slice(0,200));
+  CARDS=visibleCards();I=0;show();
+  Store.push('history',{id:Store.uid(),kind:'flashcards',text:t+' ('+gen.length+' cards)',ts:Date.now()});
+  Progress.bumpStudyMinutes(3);toast(gen.length+' flashcards ready ✓','ok');
+};
+document.getElementById('diffOnly').onclick=e=>{filterDiff=!filterDiff;e.target.classList.toggle('on',filterDiff);CARDS=visibleCards();I=0;show();if(!CARDS.length)toast('No difficult cards — mark some 🧠');};
+document.getElementById('flip').onclick=()=>document.getElementById('flash').classList.toggle('flipped');
+document.getElementById('flash').onclick=()=>document.getElementById('flash').classList.toggle('flipped');
+document.getElementById('next').onclick=()=>{I=(I+1)%CARDS.length;show();};
+document.getElementById('prev').onclick=()=>{I=(I-1+CARDS.length)%CARDS.length;show();};
+function mark(h){const c=CARDS[I];if(!c)return;const all=Store.get('cards',[]);const it=all.find(x=>x.id===c.id);if(it){it.hard=h;Store.set('cards',all);}c.hard=h;toast(h?'Marked difficult 🧠':'Marked easy 😊','ok');show();}
+document.getElementById('easy').onclick=()=>mark(false);
+document.getElementById('hard').onclick=()=>mark(true);
+document.addEventListener('keydown',e=>{if(e.key==='ArrowRight')document.getElementById('next').click();if(e.key==='ArrowLeft')document.getElementById('prev').click();if(e.key===' '&&CARDS.length){e.preventDefault();document.getElementById('flip').click();}});
+CARDS=visibleCards();show();
+</script>
+</body>
+</html>

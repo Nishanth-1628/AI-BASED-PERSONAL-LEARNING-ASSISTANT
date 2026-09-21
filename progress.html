@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Progress — LearnMate</title>
+<link rel="stylesheet" href="css/style.css">
+</head>
+<body data-page="progress">
+<div class="shell">
+<aside class="sidebar">
+  <div class="side-logo"><span class="logo-mark">🎓</span> LearnMate</div>
+  <a class="side-link" data-nav="dashboard" href="dashboard.html"><span class="e">🏠</span>Dashboard</a>
+  <a class="side-link" data-nav="tutor" href="tutor.html"><span class="e">🤖</span>AI Tutor</a>
+  <a class="side-link" data-nav="learn" href="learn.html"><span class="e">📚</span>Learn</a>
+  <a class="side-link" data-nav="notes" href="notes.html"><span class="e">📝</span>Notes</a>
+  <a class="side-link" data-nav="quiz" href="quiz.html"><span class="e">🎯</span>Quiz</a>
+  <a class="side-link" data-nav="plan" href="study-plan.html"><span class="e">🗓️</span>Study Plan</a>
+  <a class="side-link" data-nav="flash" href="flashcards.html"><span class="e">🃏</span>Flashcards</a>
+  <a class="side-link" data-nav="materials" href="materials.html"><span class="e">📂</span>Materials</a>
+  <a class="side-link" data-nav="progress" href="progress.html"><span class="e">📊</span>Progress</a>
+  <a class="side-link" data-nav="revision" href="revision.html"><span class="e">🔁</span>Revision</a>
+  <a class="side-link" data-nav="settings" href="settings.html"><span class="e">⚙️</span>Settings</a>
+  <div class="side-foot"><button class="mini-btn" data-theme-toggle>🌙 Dark</button><div class="mt"><a href="index.html">← Landing</a></div></div>
+</aside>
+<div class="main">
+  <div class="topbar"><button class="hamb" onclick="toggleSidebar()">☰</button><h1>📊 Progress Dashboard</h1></div>
+  <div class="content">
+    <div class="kpis" id="kpis"></div>
+    <div class="panels">
+      <div>
+        <div class="card"><h3 style="margin-top:0">🧠 Weakness analyzer</h3><div id="weak"></div></div>
+        <div class="card mt" id="history"><div class="space"><h3 style="margin:0">📜 Learning history</h3><div class="flex"><input type="text" id="hs" placeholder="Search…" style="max-width:200px"><button class="mini-btn" id="clr">Clear all</button></div></div><div id="hlist" class="mt"></div></div>
+      </div>
+      <div>
+        <div class="card"><h3 style="margin-top:0">📈 Quiz history</h3><div id="qlist"></div></div>
+        <div class="card mt"><h3 style="margin-top:0">📝 Saved notes</h3><div id="nlist"></div></div>
+      </div>
+    </div>
+  </div>
+</div>
+</div>
+<nav class="bottomnav"><a data-nav="dashboard" href="dashboard.html">🏠<span>Home</span></a><a data-nav="tutor" href="tutor.html">🤖<span>Tutor</span></a><a data-nav="quiz" href="quiz.html">🎯<span>Quiz</span></a><a data-nav="notes" href="notes.html">📝<span>Notes</span></a><a data-nav="settings" href="settings.html">⚙️<span>More</span></a></nav>
+<script src="js/storage.js"></script>
+<script src="js/ai.js"></script>
+<script src="js/app.js"></script>
+<script>
+const stats=Store.get('stats',{minutes:0,topics:[],quizzes:0,totalScore:0,scoreCount:0,streak:{}});
+const avg=stats.scoreCount?Math.round(stats.totalScore/stats.scoreCount):0;
+document.getElementById('kpis').innerHTML=`
+<div class="kpi"><small>Study time</small><b>${stats.minutes||0} min</b><div class="muted">${Progress.streakDays()} day streak</div></div>
+<div class="kpi"><small>Topics completed</small><b>${(stats.topics||[]).length}</b><div class="muted">${(stats.topics||[]).slice(-2).map(AIEngine.esc).join(' • ')||'—'}</div></div>
+<div class="kpi"><small>Quizzes</small><b>${stats.quizzes||0}</b><div class="muted">Avg ${avg}%</div></div>
+<div class="kpi"><small>Tasks done</small><b>${Progress.completion()}%</b><div class="progress"><div style="width:${Progress.completion()}%"></div></div></div>`;
+const w=AIEngine.weakness();
+document.getElementById('weak').innerHTML=!w?'<p class="muted">No quiz data yet. Take a quiz to unlock weak/strong topic analysis.</p><a class="btn small" href="quiz.html">Take quiz →</a>'
+:`<p><b>Weak topics:</b> ${w.weak.length?w.weak.map(r=>`<span class="tag red">${AIEngine.esc(r.topic)} ${r.acc}%</span>`).join(' '):'<span class="tag green">None 🎉</span>'}</p>
+<p><b>Strong topics:</b> ${w.strong.length?w.strong.map(r=>`<span class="tag green">${AIEngine.esc(r.topic)} ${r.acc}%</span>`).join(' '):'—'}</p>
+<h4>Recommended next steps</h4>${w.weak.length?`<ol>${w.weak.slice(0,3).map(r=>`<li>Review <b>${AIEngine.esc(r.topic)}</b> → practice 5 Qs → short quiz</li>`).join('')}</ol><a class="btn small" href="revision.html">Start revision →</a>`:'<div class="alert ok">You are strong everywhere measured. Level up: Hard quizzes + teach-back notes.</div>'}
+${w.rows.length?`<table class="table mt"><thead><tr><th>Topic</th><th>Accuracy</th><th>Wrong</th></tr></thead><tbody>${w.rows.map(r=>`<tr><td>${AIEngine.esc(r.topic)}</td><td><div class="progress"><div style="width:${r.acc}%"></div></div>${r.acc}%</td><td>${r.wrong}/${r.total}</td></tr>`).join('')}</tbody></table>`:''}`;
+function renderHist(f=''){
+  const h=Store.get('history',[]).filter(x=>!f||x.text.toLowerCase().includes(f.toLowerCase()));
+  document.getElementById('hlist').innerHTML=h.length?h.slice(0,30).map(x=>`<div class="flex" style="justify-content:space-between;border-bottom:1px solid var(--border);padding:7px 0"><span>• ${AIEngine.esc(x.text).slice(0,90)} <span class="tag">${x.kind}</span></span><button class="mini-btn" data-h="${x.id}">✕</button></div>`).join(''):'<div class="empty">No history matches.</div>';
+  document.querySelectorAll('[data-h]').forEach(b=>b.onclick=()=>{Store.removeAt('history',b.dataset.h);renderHist(document.getElementById('hs').value);});
+}
+document.getElementById('hs').addEventListener('input',e=>renderHist(e.target.value));
+document.getElementById('clr').onclick=()=>{if(confirm('Clear learning history?')){Store.set('history',[]);renderHist();}};
+renderHist(Store.get('lastSearch','')||'');document.getElementById('hs').value=Store.get('lastSearch','')||'';
+const qr=Store.get('quizResults',[]);
+document.getElementById('qlist').innerHTML=qr.length?qr.slice(0,8).map(r=>`<div style="border-bottom:1px solid var(--border);padding:8px 0"><b>${AIEngine.esc(r.subject)} — ${AIEngine.esc(r.topic)}</b> <span class="tag ${r.pct>=70?'green':r.pct>=50?'amber':'red'}">${r.score}/${r.total} (${r.pct}%)</span><br><small class="muted">${new Date(r.ts).toLocaleString()} • ${AIEngine.esc(r.difficulty)}</small></div>`).join(''):'<div class="empty">No quizzes yet.</div>';
+const nl=Store.get('notes',[]);
+document.getElementById('nlist').innerHTML=nl.length?nl.slice(0,6).map(n=>`<div style="border-bottom:1px solid var(--border);padding:8px 0">📝 <b>${AIEngine.esc(n.subject)} — ${AIEngine.esc(n.topic)}</b> <span class="tag">${AIEngine.esc(n.type)}</span></div>`).join(''):'<div class="empty">No saved notes. <a href="notes.html">Create →</a></div>';
+</script>
+</body>
+</html>

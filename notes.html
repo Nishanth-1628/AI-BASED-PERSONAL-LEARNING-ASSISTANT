@@ -1,0 +1,86 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Notes Generator — LearnMate</title>
+<link rel="stylesheet" href="css/style.css">
+</head>
+<body data-page="notes">
+<div class="shell">
+<aside class="sidebar">
+  <div class="side-logo"><span class="logo-mark">🎓</span> LearnMate</div>
+  <a class="side-link" data-nav="dashboard" href="dashboard.html"><span class="e">🏠</span>Dashboard</a>
+  <a class="side-link" data-nav="tutor" href="tutor.html"><span class="e">🤖</span>AI Tutor</a>
+  <a class="side-link" data-nav="learn" href="learn.html"><span class="e">📚</span>Learn</a>
+  <a class="side-link" data-nav="notes" href="notes.html"><span class="e">📝</span>Notes</a>
+  <a class="side-link" data-nav="quiz" href="quiz.html"><span class="e">🎯</span>Quiz</a>
+  <a class="side-link" data-nav="plan" href="study-plan.html"><span class="e">🗓️</span>Study Plan</a>
+  <a class="side-link" data-nav="flash" href="flashcards.html"><span class="e">🃏</span>Flashcards</a>
+  <a class="side-link" data-nav="materials" href="materials.html"><span class="e">📂</span>Materials</a>
+  <a class="side-link" data-nav="progress" href="progress.html"><span class="e">📊</span>Progress</a>
+  <a class="side-link" data-nav="revision" href="revision.html"><span class="e">🔁</span>Revision</a>
+  <a class="side-link" data-nav="settings" href="settings.html"><span class="e">⚙️</span>Settings</a>
+  <div class="side-foot"><button class="mini-btn" data-theme-toggle>🌙 Dark</button><div class="mt"><a href="index.html">← Landing</a></div></div>
+</aside>
+<div class="main">
+  <div class="topbar"><button class="hamb" onclick="toggleSidebar()">☰</button><h1>📝 AI Notes Generator</h1></div>
+  <div class="content">
+    <div class="panels">
+      <div class="card">
+        <div class="row c2"><div><label class="lbl">Subject</label><input type="text" id="subject" value="Java"></div>
+        <div><label class="lbl">Topic</label><input type="text" id="topic" value="Arrays"></div></div>
+        <label class="lbl">Your text / paste material (optional)</label>
+        <textarea id="src" placeholder="Paste textbook text or leave empty — the AI builds notes from the topic."></textarea>
+        <label class="lbl">Notes style</label>
+        <div class="chips" id="types">
+          <button class="chip on" data-v="Short Notes">Short Notes</button>
+          <button class="chip" data-v="Detailed Notes">Detailed Notes</button>
+          <button class="chip" data-v="Exam Notes">Exam Notes</button>
+          <button class="chip" data-v="Revision Notes">Revision Notes</button>
+        </div>
+        <button class="btn mt" id="gen">Generate notes ✨</button>
+      </div>
+      <div class="card"><h3 style="margin-top:0">💾 Saved notes (<span id="ncount">0</span>)</h3><div id="saved"></div></div>
+    </div>
+    <div class="card mt" id="out" style="display:none">
+      <div class="space"><h3 style="margin:0">Your notes</h3><div class="flex no-print"><button class="mini-btn" onclick="copyHtml('noteBody')">📋 Copy</button><button class="mini-btn" onclick="downloadText('noteBody','notes.txt')">⬇️ Download</button><button class="mini-btn" id="saveBtn">💾 Save</button><button class="mini-btn" id="flashBtn">🃏 → Flashcards</button></div></div>
+      <div id="noteBody"></div>
+    </div>
+  </div>
+</div>
+</div>
+<nav class="bottomnav"><a data-nav="dashboard" href="dashboard.html">🏠<span>Home</span></a><a data-nav="tutor" href="tutor.html">🤖<span>Tutor</span></a><a data-nav="quiz" href="quiz.html">🎯<span>Quiz</span></a><a data-nav="notes" href="notes.html">📝<span>Notes</span></a><a data-nav="settings" href="settings.html">⚙️<span>More</span></a></nav>
+<script src="js/storage.js"></script>
+<script src="js/ai.js"></script>
+<script src="js/app.js"></script>
+<script>
+let type='Short Notes';
+document.querySelectorAll('#types .chip').forEach(c=>c.onclick=()=>{document.querySelectorAll('#types .chip').forEach(x=>x.classList.remove('on'));c.classList.add('on');type=c.dataset.v;});
+try{const p=JSON.parse(sessionStorage.getItem('notes_pref')||'null');if(p){document.getElementById('subject').value=p.subject||'';document.getElementById('topic').value=p.topic||'';sessionStorage.removeItem('notes_pref');}}catch{}
+function renderSaved(){
+  const n=Store.get('notes',[]);
+  document.getElementById('ncount').textContent=n.length;
+  document.getElementById('saved').innerHTML=n.length?n.slice(0,8).map(x=>`<div class="flex" style="justify-content:space-between;border-bottom:1px solid var(--border);padding:8px 0"><span>• ${AIEngine.esc(x.subject)} — ${AIEngine.esc(x.topic)} <span class="tag">${AIEngine.esc(x.type)}</span></span><span class="flex"><button class="mini-btn" data-v="${x.id}">View</button><button class="mini-btn" data-d="${x.id}">✕</button></span></div>`).join(''):'<div class="empty">No saved notes yet.</div>';
+  document.querySelectorAll('[data-v]').forEach(b=>b.onclick=()=>{const it=Store.get('notes',[]).find(x=>x.id===b.dataset.v);if(it){document.getElementById('out').style.display='block';document.getElementById('noteBody').innerHTML=it.html;window.scrollTo(0,400);}});
+  document.querySelectorAll('[data-d]').forEach(b=>b.onclick=()=>{Store.removeAt('notes',b.dataset.d);renderSaved();});
+}
+document.getElementById('gen').onclick=()=>{
+  const s=document.getElementById('subject').value.trim(),t=document.getElementById('topic').value.trim();
+  if(!s||!t){toast('Enter subject and topic','err');return;}
+  const html=AIEngine.notes(s,t,document.getElementById('src').value,type);
+  document.getElementById('out').style.display='block';
+  document.getElementById('noteBody').innerHTML=html;
+  Store.push('history',{id:Store.uid(),kind:'notes',text:s+' — '+t,ts:Date.now()});
+  Progress.bumpStudyMinutes(3);
+  document.getElementById('out').scrollIntoView({behavior:'smooth'});
+};
+document.getElementById('saveBtn').onclick=()=>{
+  const s=document.getElementById('subject').value.trim(),t=document.getElementById('topic').value.trim();
+  Store.push('notes',{id:Store.uid(),subject:s,topic:t,type,html:document.getElementById('noteBody').innerHTML,ts:Date.now()});
+  renderSaved(); toast('Notes saved ✓','ok');
+};
+document.getElementById('flashBtn').onclick=()=>{sessionStorage.setItem('flash_pref',document.getElementById('topic').value);location.href='flashcards.html';};
+renderSaved();
+</script>
+</body>
+</html>

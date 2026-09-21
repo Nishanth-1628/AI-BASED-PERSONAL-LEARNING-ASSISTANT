@@ -1,0 +1,108 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Dashboard — LearnMate</title>
+<link rel="stylesheet" href="css/style.css">
+</head>
+<body data-page="dashboard">
+<div class="shell">
+<aside class="sidebar">
+  <div class="side-logo"><span class="logo-mark">🎓</span> LearnMate</div>
+  <a class="side-link" data-nav="dashboard" href="dashboard.html"><span class="e">🏠</span>Dashboard</a>
+  <a class="side-link" data-nav="tutor" href="tutor.html"><span class="e">🤖</span>AI Tutor</a>
+  <a class="side-link" data-nav="learn" href="learn.html"><span class="e">📚</span>Learn</a>
+  <a class="side-link" data-nav="notes" href="notes.html"><span class="e">📝</span>Notes</a>
+  <a class="side-link" data-nav="quiz" href="quiz.html"><span class="e">🎯</span>Quiz</a>
+  <a class="side-link" data-nav="plan" href="study-plan.html"><span class="e">🗓️</span>Study Plan</a>
+  <a class="side-link" data-nav="flash" href="flashcards.html"><span class="e">🃏</span>Flashcards</a>
+  <a class="side-link" data-nav="materials" href="materials.html"><span class="e">📂</span>Materials</a>
+  <a class="side-link" data-nav="progress" href="progress.html"><span class="e">📊</span>Progress</a>
+  <a class="side-link" data-nav="revision" href="revision.html"><span class="e">🔁</span>Revision</a>
+  <a class="side-link" data-nav="settings" href="settings.html"><span class="e">⚙️</span>Settings</a>
+  <div class="side-foot"><button class="mini-btn" data-theme-toggle>🌙 Dark</button><div class="mt"><a href="index.html">← Landing page</a></div></div>
+</aside>
+<div class="main">
+  <div class="topbar"><button class="hamb" onclick="toggleSidebar()">☰</button><h1>Good day, <span id="uname">Learner</span> 👋</h1>
+    <div class="search"><span>🔎</span><input id="gsearch" placeholder="Search history, notes, topics… (Enter)"></div>
+  </div>
+  <div class="content">
+    <div class="kpis">
+      <div class="kpi"><small>Learning progress</small><b id="kProg">0%</b><div class="progress"><div id="kProgBar" style="width:0%"></div></div></div>
+      <div class="kpi"><small>Quiz average</small><b id="kAvg">—</b><div class="muted" id="kQuiz">0 quizzes</div></div>
+      <div class="kpi"><small>Topics completed</small><b id="kTopics">0</b><div class="muted">Keep going 🔥</div></div>
+      <div class="kpi"><small>Study streak</small><b id="kStreak">0 days</b><div class="muted" id="kTime">0 min studied</div></div>
+    </div>
+    <div class="panels">
+      <div>
+        <div class="card">
+          <div class="space"><h3 style="margin:0">⚡ Quick actions</h3><span class="muted">Everything works offline</span></div>
+          <div class="flex mt">
+            <a class="btn small" href="tutor.html">🤖 Ask AI Tutor</a>
+            <a class="btn ghost small" href="learn.html">📚 Learn a topic</a>
+            <a class="btn ghost small" href="quiz.html">🎯 New quiz</a>
+            <a class="btn ghost small" href="notes.html">📝 Make notes</a>
+            <a class="btn ghost small" href="revision.html">🔁 Quick revision</a>
+          </div>
+        </div>
+        <div class="card mt">
+          <div class="space"><h3 style="margin:0">📜 Recent learning history</h3><a class="mini-btn" href="progress.html">View all</a></div>
+          <div id="recent"></div>
+        </div>
+      </div>
+      <div>
+        <div class="card">
+          <h3 style="margin-top:0">🎯 Recommended next steps</h3>
+          <div id="next"></div>
+        </div>
+        <div class="card mt">
+          <h3 style="margin-top:0">📅 Today's tasks <span class="tag" id="taskPct">0%</span></h3>
+          <div id="tasks"></div>
+          <a class="btn ghost small mt" href="study-plan.html">Open planner →</a>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+</div>
+<nav class="bottomnav">
+  <a data-nav="dashboard" href="dashboard.html">🏠<span>Home</span></a>
+  <a data-nav="tutor" href="tutor.html">🤖<span>Tutor</span></a>
+  <a data-nav="quiz" href="quiz.html">🎯<span>Quiz</span></a>
+  <a data-nav="notes" href="notes.html">📝<span>Notes</span></a>
+  <a data-nav="settings" href="settings.html">⚙️<span>More</span></a>
+</nav>
+<script src="js/storage.js"></script>
+<script src="js/ai.js"></script>
+<script src="js/app.js"></script>
+<script>
+const s = Store.get('settings',{});
+document.getElementById('uname').textContent = s.name || 'Learner';
+const stats = Store.get('stats',{minutes:0,topics:[],quizzes:0,totalScore:0,scoreCount:0,streak:{}});
+document.getElementById('kProg').textContent = Progress.completion() + '%';
+document.getElementById('kProgBar').style.width = Progress.completion() + '%';
+document.getElementById('kAvg').textContent = stats.scoreCount ? Math.round(stats.totalScore/stats.scoreCount)+'%' : '—';
+document.getElementById('kQuiz').textContent = (stats.quizzes||0)+' quizzes';
+document.getElementById('kTopics').textContent = (stats.topics||[]).length;
+document.getElementById('kStreak').textContent = Progress.streakDays()+' days';
+document.getElementById('kTime').textContent = (stats.minutes||0)+' min studied';
+// recent
+const hist = Store.get('history',[]).slice(0,6);
+document.getElementById('recent').innerHTML = hist.length ? hist.map(h=>`<div class="flex" style="justify-content:space-between;border-bottom:1px solid var(--border);padding:8px 0"><span>• ${AIEngine.esc(h.text).slice(0,80)}</span><span class="tag">${h.kind}</span></div>`).join('') : '<div class="empty">No history yet. Ask the tutor something! 🤖</div>';
+// next steps
+const w = AIEngine.weakness();
+document.getElementById('next').innerHTML = !w ? '<p class="muted">Take a quiz to unlock personalized recommendations.</p><a class="btn small" href="quiz.html">Start quiz</a>'
+ : `${w.strong.length?`<p>💪 Strong: ${w.strong.slice(0,3).map(r=>AIEngine.esc(r.topic)).join(', ')}</p>`:''}${w.weak.length?`<p>🧠 Revise: ${w.weak.slice(0,3).map(r=>AIEngine.esc(r.topic)+' ('+r.acc+'%)').join(', ')}</p><ol>${w.weak.slice(0,3).map(r=>`<li>Review ${AIEngine.esc(r.topic)} → practice 5 Qs → short quiz</li>`).join('')}</ol><a class="btn small" href="revision.html">Start revision →</a>`:'<p class="muted">Excellent — no weak topics. Try a harder quiz! 🎉</p>'}`;
+// tasks
+const tasks = Store.get('tasks',[]);
+const today = Store.today();
+const td = tasks.filter(t=>t.date===today);
+const pct = tasks.length?Math.round(tasks.filter(t=>t.done).length/tasks.length*100):0;
+document.getElementById('taskPct').textContent = pct+'%';
+document.getElementById('tasks').innerHTML = td.length ? td.slice(0,5).map(t=>`<label class="flex"><input type="checkbox" data-t="${t.id}" ${t.done?'checked':''}> <span>${AIEngine.esc(t.subject)}: ${AIEngine.esc(t.topic)}</span></label>`).join('') : '<p class="muted">No tasks for today. <a href="study-plan.html">Generate a plan →</a></p>';
+document.querySelectorAll('[data-t]').forEach(c=>c.onchange=e=>{const all=Store.get('tasks',[]);const it=all.find(x=>x.id===e.target.dataset.t);if(it){it.done=e.target.checked;Store.set('tasks',all);location.reload();}});
+// global search
+document.getElementById('gsearch').addEventListener('keydown',e=>{if(e.key==='Enter'){Store.set('lastSearch',e.target.value);location.href='progress.html#history';}});
+</script>
+</body>
+</html>

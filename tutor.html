@@ -1,0 +1,124 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>AI Tutor — LearnMate</title>
+<link rel="stylesheet" href="css/style.css">
+</head>
+<body data-page="tutor">
+<div class="shell">
+<aside class="sidebar">
+  <div class="side-logo"><span class="logo-mark">🎓</span> LearnMate</div>
+  <a class="side-link" data-nav="dashboard" href="dashboard.html"><span class="e">🏠</span>Dashboard</a>
+  <a class="side-link" data-nav="tutor" href="tutor.html"><span class="e">🤖</span>AI Tutor</a>
+  <a class="side-link" data-nav="learn" href="learn.html"><span class="e">📚</span>Learn</a>
+  <a class="side-link" data-nav="notes" href="notes.html"><span class="e">📝</span>Notes</a>
+  <a class="side-link" data-nav="quiz" href="quiz.html"><span class="e">🎯</span>Quiz</a>
+  <a class="side-link" data-nav="plan" href="study-plan.html"><span class="e">🗓️</span>Study Plan</a>
+  <a class="side-link" data-nav="flash" href="flashcards.html"><span class="e">🃏</span>Flashcards</a>
+  <a class="side-link" data-nav="materials" href="materials.html"><span class="e">📂</span>Materials</a>
+  <a class="side-link" data-nav="progress" href="progress.html"><span class="e">📊</span>Progress</a>
+  <a class="side-link" data-nav="revision" href="revision.html"><span class="e">🔁</span>Revision</a>
+  <a class="side-link" data-nav="settings" href="settings.html"><span class="e">⚙️</span>Settings</a>
+  <div class="side-foot"><button class="mini-btn" data-theme-toggle>🌙 Dark</button><div class="mt"><a href="index.html">← Landing</a></div></div>
+</aside>
+<div class="main">
+  <div class="topbar"><button class="hamb" onclick="toggleSidebar()">☰</button><h1>🤖 AI Tutor</h1>
+    <span class="tag" id="backendTag">offline tutor</span>
+    <div style="flex:1"></div>
+    <label class="flex muted" style="font-size:.85rem"><input type="checkbox" id="simple"> Simple mode</label>
+    <button class="mini-btn" id="newChat">+ New</button>
+    <button class="mini-btn" id="clearChat">Clear</button>
+  </div>
+  <div class="content">
+    <div class="chat-wrap">
+      <div class="card"><h3 style="margin-top:0">💬 Conversations</h3><div class="history-list" id="convList"></div>
+        <div class="alert" style="font-size:.85rem">Try: <br>• What is recursion?<br>• What is an array in Java?<br>• Difference between array and ArrayList?</div>
+      </div>
+      <div class="chat-box">
+        <div class="msgs" id="msgs"></div>
+        <div class="chat-input">
+          <button class="mini-btn" id="voiceBtn" title="Voice input">🎙️</button>
+          <input type="text" id="qin" placeholder="Ask any doubt… e.g. What is recursion?" autocomplete="off">
+          <button class="btn small" id="sendBtn">Send ➤</button>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+</div>
+<nav class="bottomnav"><a data-nav="dashboard" href="dashboard.html">🏠<span>Home</span></a><a data-nav="tutor" href="tutor.html">🤖<span>Tutor</span></a><a data-nav="quiz" href="quiz.html">🎯<span>Quiz</span></a><a data-nav="notes" href="notes.html">📝<span>Notes</span></a><a data-nav="settings" href="settings.html">⚙️<span>More</span></a></nav>
+<script src="js/storage.js"></script>
+<script src="js/ai.js"></script>
+<script src="js/app.js"></script>
+<script>
+let convs = Store.get('convs', []);
+let active = Store.get('activeConv', null);
+if (!active || !convs.find(c=>c.id===active)) { active = Store.uid(); convs.unshift({id:active,title:'New chat',msgs:[],ts:Date.now()}); Store.set('convs',convs); }
+if (AIEngine.backendConfigured()) document.getElementById('backendTag').textContent = 'cloud AI connected';
+
+const msgsEl = document.getElementById('msgs'), listEl = document.getElementById('convList');
+const cur = () => convs.find(c=>c.id===active);
+function save(){ Store.set('convs',convs); Store.set('activeConv',active); }
+function renderList(){
+  listEl.innerHTML = convs.length ? convs.map(c=>`<div class="hist-item ${c.id===active?'active':''}" data-c="${c.id}">${AIEngine.esc(c.title||'Chat')} <br><small class="muted">${(c.msgs||[]).length} msgs</small></div>`).join('') : '<div class="empty">No chats</div>';
+  listEl.querySelectorAll('[data-c]').forEach(d=>d.onclick=()=>{active=d.dataset.c;save();renderAll();});
+}
+function bubble(role, html, idx){
+  const w = document.createElement('div'); w.className='msg '+role;
+  w.innerHTML = `<div class="avatar">${role==='ai'?'🤖':'🧑'}</div><div class="msg-body">${html}${role==='ai'?`<div class="msg-actions"><button class="mini-btn" data-copy="${idx}">📋 Copy</button><button class="mini-btn" data-spk="${idx}">🔊 Listen</button><button class="mini-btn" data-reg="${idx}">↻ Regenerate</button></div>`:''}</div>`;
+  msgsEl.appendChild(w);
+}
+function renderMsgs(){
+  msgsEl.innerHTML='';
+  const m = cur().msgs;
+  if(!m.length) msgsEl.innerHTML = '<div class="empty">👋 I am your patient personal tutor.<br>Ask any question — I explain simply, with examples, key points and a practice question.<br><br>🌐 Language: <b>'+(Store.get('settings',{}).lang||'en')+'</b> (change in Settings)</div>';
+  m.forEach((x,i)=>bubble(x.role,x.html,i));
+  msgsEl.scrollTop = msgsEl.scrollHeight;
+  msgsEl.querySelectorAll('[data-copy]').forEach(b=>b.onclick=async()=>{try{await navigator.clipboard.writeText(cur().msgs[+b.dataset.copy].text);toast('Copied ✓','ok');}catch{toast('Copy blocked','err');}});
+  msgsEl.querySelectorAll('[data-spk]').forEach(b=>b.onclick=()=>Voice.speak(cur().msgs[+b.dataset.spk].text));
+  msgsEl.querySelectorAll('[data-reg]').forEach(b=>b.onclick=()=>regen(+b.dataset.reg));
+}
+function renderAll(){ renderList(); renderMsgs(); }
+async function regen(idx){
+  const c = cur(); const ans = c.msgs[idx]; const q = [...c.msgs.slice(0,idx)].reverse().find(m=>m.role==='user');
+  if(!q){ toast('No question to regenerate','err'); return; }
+  ans.html = '<div class="typing"><span></span><span></span><span></span></div> Regenerating…'; renderMsgs();
+  try{
+    const html = await AIEngine.ask(q.text+' (explain from a different angle)', opts());
+    ans.html = html; ans.text = strip(html); save(); renderMsgs();
+  }catch(e){ ans.html = '<div class="alert err">AI service failed: '+AIEngine.esc(e.message)+'. Your question is saved — try again.</div>'; renderMsgs(); }
+}
+const strip = h => { const d=document.createElement('div'); d.innerHTML=h; return d.innerText; };
+function opts(){ const s=Store.get('settings',{}); return {language:s.lang||'en', level:s.level||'Beginner', simple:document.getElementById('simple').checked}; }
+async function send(text){
+  text=(text||'').trim(); if(!text){ toast('Please type a question first','err'); return; }
+  const c=cur();
+  if(c.msgs.length===0){ c.title = text.slice(0,32); }
+  c.msgs.push({role:'user',html:AIEngine.esc(text),text}); save(); renderAll();
+  const load={role:'ai',html:'<div class="typing"><span></span><span></span><span></span></div> Thinking…',text:''};
+  c.msgs.push(load); renderMsgs();
+  try{
+    const html = await AIEngine.ask(text, opts());
+    load.html=html; load.text=strip(html); save(); renderMsgs();
+    Store.push('history',{id:Store.uid(),kind:'doubt',text,ts:Date.now()});
+    Progress.bumpStudyMinutes(2);
+  }catch(e){
+    load.html='<div class="alert err">⚠️ AI request failed ('+AIEngine.esc(e.message)+'). '+(AIEngine.backendConfigured()?'Check your backend/API and network, then retry.':'Local tutor error — please retry.')+'</div>';
+    load.text='AI request failed'; save(); renderMsgs();
+  }
+  document.getElementById('qin').value='';
+}
+document.getElementById('sendBtn').onclick=()=>send(document.getElementById('qin').value);
+document.getElementById('qin').addEventListener('keydown',e=>{if(e.key==='Enter')send(e.target.value);});
+document.getElementById('voiceBtn').onclick=e=>{
+  if(!Voice.supported()){ toast('Voice input not supported — try Chrome/Edge','err'); return; }
+  e.target.textContent='🔴…'; toast('Listening… speak now');
+  Voice.listen(t=>{e.target.textContent='🎙️';document.getElementById('qin').value=t;send(t);},err=>{e.target.textContent='🎙️';toast(err,'err');});
+};
+document.getElementById('newChat').onclick=()=>{active=Store.uid();convs.unshift({id:active,title:'New chat',msgs:[],ts:Date.now()});save();renderAll();};
+document.getElementById('clearChat').onclick=()=>{cur().msgs=[];save();renderMsgs();toast('Conversation cleared');};
+renderAll();
+</script>
+</body>
+</html>
